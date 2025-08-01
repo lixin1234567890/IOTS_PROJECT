@@ -1,84 +1,61 @@
 #include <Servo.h>
 #include <lcd_i2c.h>
 
-// Pin definitions
-#define SIGNAL_PIN     D7  // Signal input from teammate's ESP8266
-#define SERVO_PIN      D4  // Servo motor control
-#define GREEN_LED_PIN  D2  // Green LED
-#define RED_LED_PIN    D1  // Red LED
-#define BUZZER_PIN     D6  // Buzzer
-#define VIBRATION_PIN  D5  // Vibration sensor
+// Pins
+#define OWNER_SIGNAL D7     // Input signal for Owner
+#define USER_SIGNAL  D3     // Input signal for User
+#define SERVO_PIN    D4     // Servo motor control
+#define GREEN_LED    D2     // Green LED output
 
 // Objects
 Servo servo;
-lcd_i2c lcd(0x3E, 16, 2);
+lcd_i2c lcd(0x3E, 16, 2); // I2C LCD: address, cols, rows
 
 void setup() {
   Serial.begin(115200);
 
-  // Inputs
-  pinMode(SIGNAL_PIN, INPUT_PULLUP);
-  pinMode(VIBRATION_PIN, INPUT);
+  // Input setup (Active HIGH)
+  pinMode(OWNER_SIGNAL, INPUT);
+  pinMode(USER_SIGNAL, INPUT);
 
-  // Outputs
-  pinMode(GREEN_LED_PIN, OUTPUT);
-  pinMode(RED_LED_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(GREEN_LED_PIN, LOW);
-  digitalWrite(RED_LED_PIN, LOW);
-  digitalWrite(BUZZER_PIN, LOW);
+  // Output setup
+  pinMode(GREEN_LED, OUTPUT);
+  digitalWrite(GREEN_LED, LOW);  // LED off by default
 
-  // Servo
+  // Servo setup
   servo.attach(SERVO_PIN);
-  servo.write(0);  // Locked
+  servo.write(0);  // Locked by default
 
-  // LCD
+  // LCD setup
   lcd.begin();
-  lcd.setCursor(0, 0);
-  lcd.print("System Ready");
+  lcd.clear();
 }
 
 void loop() {
-  // Read vibration sensor
-  int vibration = digitalRead(VIBRATION_PIN);
+  bool ownerActive = digitalRead(OWNER_SIGNAL) == HIGH;
+  bool userActive  = digitalRead(USER_SIGNAL) == HIGH;
 
-  if (vibration == HIGH) {
-    // Vibration detected
-    Serial.println("Vibration detected!");
+  if (ownerActive || userActive) {
+    // Unlock door
+    servo.write(90);  // Adjust angle if needed
+    digitalWrite(GREEN_LED, HIGH);
 
-    // Activate buzzer and red LED
-    digitalWrite(BUZZER_PIN, HIGH);
-    digitalWrite(RED_LED_PIN, HIGH);
-
-    // Turn off green LED (override)
-    digitalWrite(GREEN_LED_PIN, LOW);
-  } else {
-    // No vibration
-    digitalWrite(BUZZER_PIN, LOW);
-    digitalWrite(RED_LED_PIN, LOW);
-  }
-
-  // Only perform door logic if no vibration is happening
-  if (vibration == LOW) {
-    int signal = digitalRead(SIGNAL_PIN);
-
-    if (signal == LOW) {
-      // Unlock door
-      servo.write(90);
-      digitalWrite(GREEN_LED_PIN, HIGH);
-
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Door opened");
+    // Show welcome message
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    if (ownerActive) {
+      lcd.print("Welcome, owner");
     } else {
-      // Lock door
-      servo.write(0);
-      digitalWrite(GREEN_LED_PIN, LOW);
-
-      lcd.clear();
+      lcd.print("Welcome, user");
     }
+  } else {
+    // No signal: reset system
+    servo.write(0);  // Lock door
+    digitalWrite(GREEN_LED, LOW);
+    lcd.clear();
   }
 
-  delay(200);
+  delay(300);  // Adjust as needed
 }
+
 
