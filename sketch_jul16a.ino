@@ -1,30 +1,35 @@
 #include <Servo.h>
 #include <lcd_i2c.h>
 
-// Pins
-#define OWNER_SIGNAL D7     // Input signal for Owner
-#define USER_SIGNAL  D3     // Input signal for User
-#define SERVO_PIN    D4     // Servo motor control
-#define GREEN_LED    D2     // Green LED output
+// Pin definitions
+#define OWNER_SIGNAL     D7    // Owner input
+#define USER_SIGNAL      D3    // User input
+#define SERVO_PIN        D4    // Servo control
+#define GREEN_LED        D2    // Green LED (door open)
+#define VIBRATION_PIN    D5    // Vibration sensor
+#define RED_LED          D6    // Red LED (vibration alert)
 
 // Objects
 Servo servo;
-lcd_i2c lcd(0x3E, 16, 2); // I2C LCD: address, cols, rows
+lcd_i2c lcd(0x3E, 16, 2); // LCD address, cols, rows
 
 void setup() {
   Serial.begin(115200);
 
-  // Input setup (Active HIGH)
+  // Inputs
   pinMode(OWNER_SIGNAL, INPUT);
   pinMode(USER_SIGNAL, INPUT);
+  pinMode(VIBRATION_PIN, INPUT);
 
-  // Output setup
+  // Outputs
   pinMode(GREEN_LED, OUTPUT);
-  digitalWrite(GREEN_LED, LOW);  // LED off by default
+  pinMode(RED_LED, OUTPUT);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(RED_LED, LOW);
 
   // Servo setup
   servo.attach(SERVO_PIN);
-  servo.write(0);  // Locked by default
+  servo.write(0); // Locked
 
   // LCD setup
   lcd.begin();
@@ -33,14 +38,21 @@ void setup() {
 
 void loop() {
   bool ownerActive = digitalRead(OWNER_SIGNAL) == HIGH;
-  bool userActive  = digitalRead(USER_SIGNAL) == HIGH;
+  bool userActive = digitalRead(USER_SIGNAL) == HIGH;
+  bool vibrationDetected = digitalRead(VIBRATION_PIN) == HIGH;
 
+  // Vibration response
+  if (vibrationDetected) {
+    digitalWrite(RED_LED, HIGH);
+  } else {
+    digitalWrite(RED_LED, LOW);
+  }
+
+  // Owner or user access
   if (ownerActive || userActive) {
-    // Unlock door
-    servo.write(90);  // Adjust angle if needed
+    servo.write(90);  // Unlock
     digitalWrite(GREEN_LED, HIGH);
 
-    // Show welcome message
     lcd.clear();
     lcd.setCursor(0, 0);
     if (ownerActive) {
@@ -49,13 +61,13 @@ void loop() {
       lcd.print("Welcome, user");
     }
   } else {
-    // No signal: reset system
-    servo.write(0);  // Lock door
+    // Default state
+    servo.write(0);  // Lock
     digitalWrite(GREEN_LED, LOW);
     lcd.clear();
   }
 
-  delay(300);  // Adjust as needed
+  delay(300);  // Adjust for responsiveness
 }
 
 
