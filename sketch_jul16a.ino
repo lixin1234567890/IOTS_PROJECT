@@ -2,8 +2,7 @@
 #include <lcd_i2c.h>
 
 // Pin definitions
-#define OWNER_SIGNAL     D7    // Owner input
-#define USER_SIGNAL      D3    // User input
+#define ACCESS_SIGNAL    D7    // Combined Owner/User input
 #define SERVO_PIN        D4    // Servo control
 #define GREEN_LED        D2    // Green LED (door open)
 #define VIBRATION_PIN    D5    // Vibration sensor
@@ -17,8 +16,7 @@ void setup() {
   Serial.begin(115200);
 
   // Inputs
-  pinMode(OWNER_SIGNAL, INPUT);
-  pinMode(USER_SIGNAL, INPUT);
+  pinMode(ACCESS_SIGNAL, INPUT);
   pinMode(VIBRATION_PIN, INPUT);
 
   // Outputs
@@ -37,37 +35,32 @@ void setup() {
 }
 
 void loop() {
-  bool ownerActive = digitalRead(OWNER_SIGNAL) == HIGH;
-  bool userActive = digitalRead(USER_SIGNAL) == HIGH;
+  bool accessGranted = digitalRead(ACCESS_SIGNAL) == HIGH;
   bool vibrationDetected = digitalRead(VIBRATION_PIN) == HIGH;
 
   // Vibration response
   if (vibrationDetected) {
-    digitalWrite(RED_LED, HIGH);
+    digitalWrite(RED_LED, LOW);   // Turn on red LED (active-low)
   } else {
-    digitalWrite(RED_LED, LOW);
+    digitalWrite(RED_LED, HIGH);  // Turn off red LED
   }
 
-  // Owner or user access
-  if (ownerActive || userActive) {
-    servo.write(90);  // Unlock
-    digitalWrite(GREEN_LED, HIGH);
+  // Access granted
+  if (accessGranted) {
+    servo.write(90);               // Unlock
+    digitalWrite(GREEN_LED, LOW); // Turn on green LED (active-low)
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    if (ownerActive) {
-      lcd.print("Welcome, owner");
-    } else {
-      lcd.print("Welcome, user");
-    }
+    lcd.print("Welcome");
+    Serial.println("HIGH");
   } else {
     // Default state
-    servo.write(0);  // Lock
-    digitalWrite(GREEN_LED, LOW);
+    servo.write(0);                // Lock
+    digitalWrite(GREEN_LED, HIGH); // Turn off green LED
     lcd.clear();
+    Serial.println("LOW");
   }
-
-  delay(300);  // Adjust for responsiveness
+  delay(300);
 }
-
 
