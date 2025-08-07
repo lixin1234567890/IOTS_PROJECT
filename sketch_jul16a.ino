@@ -7,6 +7,7 @@
 #define GREEN_LED        D2    // Green LED (door open)
 #define VIBRATION_PIN    D5    // Vibration sensor
 #define RED_LED          D6    // Red LED (vibration alert)
+#define BUZZER_PIN       D3    // Buzzer
 
 // Objects
 Servo servo;
@@ -20,10 +21,11 @@ void setup() {
   pinMode(VIBRATION_PIN, INPUT);
 
   // Outputs
+  pinMode(BUZZER_PIN, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(RED_LED, HIGH);
 
   // Servo setup
   servo.attach(SERVO_PIN);
@@ -31,7 +33,7 @@ void setup() {
 
   // LCD setup
   lcd.begin();
-  lcd.clear();
+lcd.clear();
 }
 
 void loop() {
@@ -40,9 +42,11 @@ void loop() {
 
   // Vibration response
   if (vibrationDetected) {
-    digitalWrite(RED_LED, LOW);   // Turn on red LED (active-low)
+    digitalWrite(RED_LED, LOW);  // Turn on red LED (active-low)
+    digitalWrite(BUZZER_PIN, HIGH); // Turn on buzzer
   } else {
     digitalWrite(RED_LED, HIGH);  // Turn off red LED
+    digitalWrite(BUZZER_PIN, LOW); // Turn off buzzer
   }
 
   // Access granted
@@ -53,14 +57,11 @@ void loop() {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Welcome");
-    Serial.println("HIGH");
   } else {
     // Default state
     servo.write(0);                // Lock
     digitalWrite(GREEN_LED, HIGH); // Turn off green LED
     lcd.clear();
-    Serial.println("LOW");
   }
-  delay(300);
 }
 
